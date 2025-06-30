@@ -1,0 +1,13 @@
+prefix=/Users/macbookpro/Desktop/Ashby-plots-main/ashby_env
+exec_prefix=/Users/macbookpro/Desktop/Ashby-plots-main/ashby_env
+libdir=/Users/macbookpro/Desktop/Ashby-plots-main/ashby_env/lib
+sharedlibdir=/Users/macbookpro/Desktop/Ashby-plots-main/ashby_env/lib
+includedir=/Users/macbookpro/Desktop/Ashby-plots-main/ashby_env/include
+
+Name: zlib
+Description: zlib compression library
+Version: 1.2.13
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lz
+Cflags: -I${includedir}
