@@ -6,7 +6,8 @@ from gui.panels import (
     AxisPanel, 
     GuidelinePanel,
     MaterialsPanel, 
-    UnitCellPanel
+    UnitCellPanel,
+    ColorPanel
 )
 from gui.plot_handler import PlotHandler
 
@@ -43,6 +44,9 @@ class AshbyPlotApp:
             'y_max': tk.StringVar(value="1E3"),
             'x_axis_unit': tk.StringVar(),
             'y_axis_unit': tk.StringVar(),
+            'axis_linewidth': tk.StringVar(value="1.0"),
+            'show_top_spine': tk.BooleanVar(value=True),
+            'show_right_spine': tk.BooleanVar(value=True),
             
             # Guideline variables
             'guideline_flag': tk.BooleanVar(value=True),
@@ -56,6 +60,8 @@ class AshbyPlotApp:
             
             # Material variables
             'individual_material_flag': tk.BooleanVar(value=False),
+            'unique_categories': [],
+            'custom_colors': {},
             
             # Unit cell variables
             'unit_cell_flag': tk.BooleanVar(value=False),
@@ -94,12 +100,14 @@ class AshbyPlotApp:
         guideline_panel = GuidelinePanel(notebook, self.variables)
         materials_panel = MaterialsPanel(notebook, self.variables)
         unit_cell_panel = UnitCellPanel(notebook, self.variables)
+        self.color_panel = ColorPanel(notebook, self.variables)
         
         notebook.add(file_panel, text="File")
         notebook.add(self.axis_panel, text="Axis Settings")
         notebook.add(guideline_panel, text="Guidelines")
         notebook.add(materials_panel, text="Materials")
         notebook.add(unit_cell_panel, text="Unit Cells")
+        notebook.add(self.color_panel, text="Colors")
         
         # Bottom buttons
         button_frame = ttk.Frame(control_frame)
@@ -112,6 +120,8 @@ class AshbyPlotApp:
         """Callback to refresh UI elements after a file is loaded."""
         if hasattr(self, 'axis_panel'):
             self.axis_panel.update_axis_options()
+        if hasattr(self, 'color_panel'):
+            self.color_panel.update_color_options()
 
     def refresh_plot(self):
         """Refresh the plot with current settings"""

@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox, colorchooser
 import pandas as pd
 
 class BasePanel(ttk.Frame):
@@ -86,6 +86,13 @@ class FilePanel(BasePanel):
                         property_columns.append(base_prop)
                         processed_bases.add(base_prop)
 
+            # --- Calculate and store unique categories for the ColorPanel ---
+            if 'Category' in data.columns:
+                data['Category'] = data['Category'].astype(str).str.strip()
+                self.variables['unique_categories'] = sorted(data['Category'].unique())
+            else:
+                self.variables['unique_categories'] = [] # Clear if no category column
+
             # Update the standard properties list
             if property_columns:
                 self.variables['standard_properties'] = sorted(list(set(property_columns)))
@@ -167,8 +174,8 @@ class AxisPanel(BasePanel):
         ttk.Label(self, text="X-Axis Limits:").pack(anchor=tk.W, padx=5, pady=5)
         x_limit_frame = ttk.Frame(self)
         x_limit_frame.pack(fill=tk.X, padx=5, pady=2)
-        ttk.Label(x_limit_frame, text="Min:").pack(side=tk.LEFT)
-        ttk.Entry(x_limit_frame, textvariable=self.variables['x_min'], width=10).pack(side=tk.LEFT, padx=5)
+        ttk.Label(x_limit_frame, text="Min:").pack(side=tk.LEFT, padx=5)
+        ttk.Entry(x_limit_frame, textvariable=self.variables['x_min'], width=10).pack(side=tk.LEFT)
         ttk.Label(x_limit_frame, text="Max:").pack(side=tk.LEFT, padx=5)
         ttk.Entry(x_limit_frame, textvariable=self.variables['x_max'], width=10).pack(side=tk.LEFT)
         
@@ -176,11 +183,25 @@ class AxisPanel(BasePanel):
         ttk.Label(self, text="Y-Axis Limits:").pack(anchor=tk.W, padx=5, pady=5)
         y_limit_frame = ttk.Frame(self)
         y_limit_frame.pack(fill=tk.X, padx=5, pady=2)
-        ttk.Label(y_limit_frame, text="Min:").pack(side=tk.LEFT)
-        ttk.Entry(y_limit_frame, textvariable=self.variables['y_min'], width=10).pack(side=tk.LEFT, padx=5)
+        ttk.Label(y_limit_frame, text="Min:").pack(side=tk.LEFT, padx=5)
+        ttk.Entry(y_limit_frame, textvariable=self.variables['y_min'], width=10).pack(side=tk.LEFT)
         ttk.Label(y_limit_frame, text="Max:").pack(side=tk.LEFT, padx=5)
         y_max_entry = ttk.Entry(y_limit_frame, textvariable=self.variables['y_max'])
         y_max_entry.pack(side=tk.LEFT, padx=2)
+
+        # --- New Axis Style Controls ---
+        style_frame = ttk.LabelFrame(self, text="Axis Style", padding=(5, 5))
+        style_frame.pack(fill=tk.X, padx=5, pady=10)
+
+        # Axis Line Width
+        width_frame = ttk.Frame(style_frame)
+        width_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(width_frame, text="Line Width:").pack(side=tk.LEFT, padx=5)
+        ttk.Entry(width_frame, textvariable=self.variables['axis_linewidth'], width=8).pack(side=tk.LEFT)
+
+        # Spine Visibility
+        ttk.Checkbutton(style_frame, text="Show Top Axis Spine", variable=self.variables['show_top_spine']).pack(anchor=tk.W, padx=5)
+        ttk.Checkbutton(style_frame, text="Show Right Axis Spine", variable=self.variables['show_right_spine']).pack(anchor=tk.W, padx=5)
 
     def update_axis_options(self):
         """Update the values in the axis comboboxes based on the loaded file."""
@@ -290,9 +311,12 @@ class UnitCellPanel(BasePanel):
         
         # Infill Material selection
         ttk.Label(unit_cell_frame, text="Infill Material:").pack(anchor=tk.W, padx=5, pady=5)
-        material_combo = ttk.Combobox(unit_cell_frame, textvariable=self.variables['unit_cell_material'], 
-                                     values=["foamed elastomer", "dense elastomer", "none"])
-        material_combo.pack(fill=tk.X, padx=5, pady=2)
+        ttk.Radiobutton(self, text="Foamed Elastomer", variable=self.variables['unit_cell_material'], 
+                       value="foamed elastomer").pack(anchor=tk.W, padx=25)
+        ttk.Radiobutton(self, text="Dense Elastomer", variable=self.variables['unit_cell_material'], 
+                       value="dense elastomer").pack(anchor=tk.W, padx=25)
+        ttk.Radiobutton(self, text="None", variable=self.variables['unit_cell_material'], 
+                       value="none").pack(anchor=tk.W, padx=25)
         
         # File path information
         ttk.Label(unit_cell_frame, text="Note: Unit cell data must be in folders:").pack(anchor=tk.W, padx=5, pady=5)
@@ -301,4 +325,77 @@ class UnitCellPanel(BasePanel):
         ttk.Label(unit_cell_frame, text="- unit_cell_data/Lattice_All_inputs.csv").pack(anchor=tk.W, padx=25, pady=2)
         ttk.Label(unit_cell_frame, text="- unit_cell_data/Lattice_All_outputs.csv").pack(anchor=tk.W, padx=25, pady=2)
         ttk.Label(unit_cell_frame, text="- unit_cell_data/Re-entrant_All_inputs.csv").pack(anchor=tk.W, padx=25, pady=2)
-        ttk.Label(unit_cell_frame, text="- unit_cell_data/Re-entrant_All_outputs.csv").pack(anchor=tk.W, padx=25, pady=2) 
+        ttk.Label(unit_cell_frame, text="- unit_cell_data/Re-entrant_All_outputs.csv").pack(anchor=tk.W, padx=25, pady=2)
+
+
+class ColorPanel(BasePanel):
+    """Panel for customizing material category colors."""
+    def __init__(self, parent, variables):
+        super().__init__(parent, variables)
+        self.canvas = tk.Canvas(self)
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.canvas)
+
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(
+                scrollregion=self.canvas.bbox("all")
+            )
+        )
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+        
+        self.color_widgets = {}
+
+    def update_color_options(self):
+        """Dynamically create widgets for color customization."""
+        for widget in self.scrollable_frame.winfo_children():
+            widget.destroy()
+            
+        categories = self.variables.get('unique_categories', [])
+        
+        for i, category in enumerate(categories):
+            self._create_color_widget(category, i)
+
+    def _create_color_widget(self, category, row):
+        """Create a single row of widgets for a category."""
+        # Get the default color
+        custom_color = self.variables['custom_colors'].get(category)
+        if custom_color:
+            color = custom_color
+        else:
+            # Fallback to the default color generation logic
+            DISTINCT_COLORS = [
+                '#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', 
+                '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990', '#dcbeff', 
+                '#9A6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', 
+                '#000075', '#a9a9a9'
+            ]
+            color = DISTINCT_COLORS[row % len(DISTINCT_COLORS)]
+
+        row_frame = ttk.Frame(self.scrollable_frame)
+        row_frame.pack(fill='x', expand=True, padx=5, pady=2)
+
+        label = ttk.Label(row_frame, text=category, width=25)
+        label.pack(side='left', fill='x')
+
+        color_swatch = tk.Frame(row_frame, width=50, height=20, bg=color, relief='sunken', borderwidth=1)
+        color_swatch.pack(side='left', padx=10)
+
+        change_button = ttk.Button(row_frame, text="Change Color", 
+                                  command=lambda cat=category, swatch=color_swatch: self._change_color(cat, swatch))
+        change_button.pack(side='left')
+        
+    def _change_color(self, category, swatch):
+        """Open color chooser and update the color for a category."""
+        initial_color = swatch.cget("bg")
+        color_code = colorchooser.askcolor(title=f"Choose color for {category}", initialcolor=initial_color)
+        
+        if color_code and color_code[1]:
+            new_color = color_code[1]
+            swatch.config(bg=new_color)
+            self.variables['custom_colors'][category] = new_color 

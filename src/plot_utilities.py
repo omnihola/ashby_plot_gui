@@ -175,6 +175,8 @@ def draw_plot(
                     height=y_height,
                     facecolor=color,
                     alpha=0.3,
+                    edgecolor=color,  # Add a solid-colored edge for distinction
+                    linewidth=1.5,    # Make the edge clearly visible
                     zorder=1,
                 )
                 ax.add_patch(ellipse)
@@ -183,7 +185,14 @@ def draw_plot(
             elif y_height > 0:  # Vertical Line
                 ax.plot([x_center, x_center], [min(y_points), max(y_points)], color=color, solid_capstyle='round', lw=2, zorder=1)
             else:  # Point
-                ax.scatter(x_center, y_center, facecolor=color, edgecolor='k', s=50, zorder=2)
+                ax.scatter(
+                    x_center, 
+                    y_center, 
+                    facecolor=color,    # Use the deep, solid color
+                    edgecolor='none',   # Remove the outline
+                    s=60,               # Slightly increase size for visibility
+                    zorder=2
+                )
 
 
 def create_legend(ax, material_classes, material_colors, ncol, fontsize):

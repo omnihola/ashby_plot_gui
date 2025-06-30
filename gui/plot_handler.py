@@ -135,40 +135,36 @@ class PlotHandler:
                 self._plot_unit_cell_data(x_quantity, y_quantity)
             
             # --- Final Legend Creation ---
-            # Create the legend at the very end to ensure all artists are included.
-            if self.variables['file_path'].get():
-                try:
-                    data = pd.read_excel(self.variables['file_path'].get())
-                    data['Category'] = data['Category'].astype(str).str.strip()
-
-                    # 2. Pre-process and convert all other columns to numeric.
-                    for col in data.columns:
-                        if col != 'Category':
-                            # First, convert to string to use string methods.
-                            # Then, remove the '~' character for approximate values.
-                            # Finally, convert to numeric, coercing any remaining non-numeric values to NaN.
-                            data[col] = pd.to_numeric(
-                                data[col].astype(str).str.replace('~', ''), 
-                                errors='coerce'
-                            )
-                    
-                    unique_categories = sorted(data['Category'].unique())
-                    cmap = plt.get_cmap('tab20')
-                    colors = cmap(np.linspace(0, 1, len(unique_categories)))
-                    dynamic_material_colors = dict(zip(unique_categories, colors))
-                    
-                    figure_type = self.variables['figure_type'].get()
-                    fontsize = 8 if figure_type == 'publication' else 14
-                    
-                    create_legend(
-                        ax=self.ax,
-                        material_classes=unique_categories,
-                        material_colors=dynamic_material_colors,
-                        ncol=2,
-                        fontsize=fontsize
+            # Get unique categories which were already calculated and stored when the file was loaded.
+            unique_categories = self.variables.get('unique_categories', [])
+            
+            if unique_categories:
+                # Use a curated list of visually distinct colors to maximize contrast.
+                DISTINCT_COLORS = [
+                    '#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', 
+                    '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990', '#dcbeff', 
+                    '#9A6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', 
+                    '#000075', '#a9a9a9'
+                ]
+                
+                dynamic_material_colors = {}
+                for i, category in enumerate(unique_categories):
+                    # Prioritize custom color, then fall back to the default list.
+                    dynamic_material_colors[category] = self.variables['custom_colors'].get(
+                        category, 
+                        DISTINCT_COLORS[i % len(DISTINCT_COLORS)]
                     )
-                except Exception as e:
-                    print(f"Failed to create legend: {e}") # Log error instead of messagebox
+
+                figure_type = self.variables['figure_type'].get()
+                fontsize = 8 if figure_type == 'publication' else 14
+                
+                create_legend(
+                    ax=self.ax,
+                    material_classes=unique_categories,
+                    material_colors=dynamic_material_colors,
+                    ncol=2,
+                    fontsize=fontsize
+                )
 
             # Render the figure to an image and display it
             self._update_plot_image()
@@ -212,10 +208,23 @@ class PlotHandler:
                         errors='coerce'
                     )
             
-            unique_categories = sorted(data['Category'].unique())
-            cmap = plt.get_cmap('tab20')
-            colors = cmap(np.linspace(0, 1, len(unique_categories)))
-            dynamic_material_colors = dict(zip(unique_categories, colors))
+            unique_categories = self.variables.get('unique_categories', []) # Get categories from loader
+            
+            # Use a curated list of visually distinct colors to maximize contrast.
+            DISTINCT_COLORS = [
+                '#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', 
+                '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990', '#dcbeff', 
+                '#9A6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', 
+                '#000075', '#a9a9a9'
+            ]
+            
+            dynamic_material_colors = {}
+            for i, category in enumerate(unique_categories):
+                # Prioritize custom color, then fall back to the default list.
+                dynamic_material_colors[category] = self.variables['custom_colors'].get(
+                    category, 
+                    DISTINCT_COLORS[i % len(DISTINCT_COLORS)]
+                )
 
             # Handle Poisson difference calculation if needed
             if (x_quantity == 'Poisson difference') or (y_quantity == 'Poisson difference'):
